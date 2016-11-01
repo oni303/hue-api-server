@@ -27,7 +27,7 @@ class Config(object):
         return self.config[key] 
     def save(self):
         with open(self.file, 'w') as config_file:  
-            json.dump(self.config, config_file, indent=4, sort_keys=True)
+            json.dump(self.allConfig, config_file, indent=4, sort_keys=True)
             config_file.close()
     def get_bridge_config(self, user):
         #it is request used to connect an app to this bridge so we do not offer all details

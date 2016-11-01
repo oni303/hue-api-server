@@ -155,6 +155,18 @@ def fullState(username):
         raise PermissionDenied('wrong user', status_code=503)
 
 
+@app.route('/api/<username>/groups', methods=['POST'])
+def add_group(username):
+    conf = Config()
+    groups = conf.groups
+    #get the next id
+    gkeys = sorted(groups.keys())
+    gid = int(gkeys[len(gkeys) - 1]) + 1
+    newGroup = json.loads(request.data.decode())
+    groups[str(gid)] = newGroup;
+    conf.save()
+    return json.dumps([{"success":{"id": str(gid)}}])
+
 if __name__ == '__main__':
     upnpServ = UpnpServer()
     upnpServ.start()

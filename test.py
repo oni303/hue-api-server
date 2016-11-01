@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from flask import Flask , request, jsonify
+from flask import Flask , request, jsonify, redirect, url_for, send_from_directory
 from upnp import UpnpServer
 from config import Config
 import json
@@ -8,6 +8,8 @@ import datetime
 import random
 import string  
 import socket
+from werkzeug.utils import secure_filename
+import os
 
 class PermissionDenied(Exception):
     status_code = 503
@@ -25,14 +27,33 @@ class PermissionDenied(Exception):
         return rv
 
 app = Flask(__name__)
+UPLOAD_FOLDER = './uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @app.errorhandler(PermissionDenied)
 def handlePermissionDenied(error):
     response = jsonify(error.to_dict())
     response.status_code = error.status_code
     return response
+def upload_file():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        file = request.files['file']
+        # if user does not select file, browser also
+        # submit a empty part without filename
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            return redirect(url_for('uploaded_file',
+                                    filename=filename))
 
-@app.route('/<filename>')
+@app.route('/<filename>', methods=['POST', 'GET'])
 def index(filename):
       if filename == "description.xml":
             ip = socket.gethostbyname(socket.gethostname())
@@ -74,10 +95,30 @@ def index(filename):
                             </iconList>
                         </device>
                     </root>"""
+      elif filename == 'updater':
+          if request.method == 'POST':
+              # check if the post request has the file part
+              if 'file' not in request.files:
+                  flash('No file part')
+                  return redirect(request.url)
+              file = request.files['file']
+              # if user does not select file, browser also
+              # submit a empty part without filename
+              if file.filename == '':
+                  flash('No selected file')
+                  return redirect(request.url)
+              if file: 
+                  filename = secure_filename(file.filename)
+                  file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                  return redirect(url_for('uploaded_file', filename=filename))
       else:
-            msg = filename
+          msg = filename
                  
       return msg
+
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/api/<username>/config')
 def config(username):

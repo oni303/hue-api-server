@@ -30,6 +30,12 @@ app = Flask(__name__)
 UPLOAD_FOLDER = './uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+def authUser(conf,username):
+    if username in conf.config['whitelist'].keys():
+        return True
+    else
+        return False
+
 @app.errorhandler(PermissionDenied)
 def handlePermissionDenied(error):
     response = jsonify(error.to_dict())
@@ -123,6 +129,8 @@ def uploaded_file(filename):
 @app.route('/api/<username>/config')
 def config(username):
     conf = Config()
+    if not userAuth(conf, username):
+        raise PermissionDenied('wrong user', status_code=503)
     retVal = conf.get_bridge_config(username)
     if retVal:
         return json.dumps(retVal)
@@ -148,6 +156,8 @@ def api():
 @app.route('/api/<username>/')
 def fullState(username):
     conf = Config()
+    if not userAuth(conf, username):
+        raise PermissionDenied('wrong user', status_code=503)
     retVal = conf.get_bridge_config(username)
     if retVal:
         return json.dumps(conf.allConfig)

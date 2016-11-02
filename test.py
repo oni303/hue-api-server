@@ -138,7 +138,7 @@ def config(username):
         raise PermissionDenied('wrong user', status_code=503)
 
 @app.route('/api/', methods=['POST'])
-def api():
+def api():  #creates a user oO
     try:
         body = json.loads(request.data.decode())
         devType = body['devicetype']
@@ -165,18 +165,44 @@ def fullState(username):
         raise PermissionDenied('wrong user', status_code=503)
 
 
-@app.route('/api/<username>/groups', methods=['POST'])
-def add_group(username):
+@app.route('/api/<username>/groups', methods=['POST', 'GET'])
+def groups(username):
     conf = Config()
+    if not userAuth(conf, username):
+        raise PermissionDenied('wrong user', status_code=503)
     groups = conf.groups
     #get the next id
-    gkeys = sorted(groups.keys())
-    gid = int(gkeys[len(gkeys) - 1]) + 1
-    newGroup = json.loads(request.data.decode())
-    groups[str(gid)] = newGroup;
-    conf.save()
-    return json.dumps([{"success":{"id": str(gid)}}])
+    if request.method == 'POST':
+        gkeys = sorted(groups.keys())
+        gid = int(gkeys[len(gkeys) - 1]) + 1
+        newGroup = json.loads(request.data.decode())
+        groups[str(gid)] = newGroup;
+        conf.save()
+        return json.dumps([{"success":{"id": str(gid)}}])
+    elif request.method == 'GET': 
+        return json.dumps(groups)
 
+@app.route('/api/<username>/groups/<gid>', methods=['PUT', 'GET'])
+def group(username,gid):
+    conf = Config()
+    if not userAuth(conf, username):
+        raise PermissionDenied('wrong user', status_code=503)
+    if request.method == 'GET': 
+        return json.dumps(conf.groups[gid])
+    elif request.method == 'PUT': 
+        attr = json.loads(request.data.decode())
+        if gid in conf.groups:
+            group = conf.groups[gid] 
+        else:
+            raise PermissionDenied('wrong user', status_code=503)
+        if 'name' in attr.keys():
+            group['name'] = attr['name']
+        if 'lights' in attr.keys():
+            group['lights'] = attr['lights']
+        if 'class' in attr.keys():
+            group['class'] = attr['class']
+        conf.save()
+            
 if __name__ == '__main__':
     upnpServ = UpnpServer()
     upnpServ.start()

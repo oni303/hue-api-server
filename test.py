@@ -195,13 +195,37 @@ def group(username,gid):
             group = conf.groups[gid] 
         else:
             raise PermissionDenied('wrong user', status_code=503)
-        if 'name' in attr.keys():
-            group['name'] = attr['name']
-        if 'lights' in attr.keys():
-            group['lights'] = attr['lights']
-        if 'class' in attr.keys():
-            group['class'] = attr['class']
+        retVal = [] 
+        for key in attr.keys():
+            group[key] = attr[key]
+            path = "groups/"+gid+"/"+key
+            retVal.append({"success":{path:attr[key]}})
         conf.save()
+        return json.dumps(retVal)
+
+
+@app.route('/api/<username>/groups/<gid>/action', methods=['PUT'])
+def setGroupState(username,gid):
+    ### TODO: support to call group 0 to recall a scene for all light in that scene (what ever)
+    conf = Config()
+    if not userAuth(conf, username):
+        raise PermissionDenied('wrong user', status_code=503)
+    if gid in conf.groups:
+        group = conf.groups[gid] 
+        action = group['action']
+        body = json.loads(request.data.decode())
+        retVal = [] 
+        for key in body.keys():
+            action[key] = body[key]
+            path = "groups/"+gid+"/action/"+key
+            retVal.append({"success":{"address":path, key:action[key]}})
+            if key == 'scene':
+                retVal = [{"success":{path, key:action[key]}}]
+                break
+        conf.save()
+        return json.dumps(retVal)
+    else:
+        raise PermissionDenied('wrong user', status_code=503)
             
 if __name__ == '__main__':
     upnpServ = UpnpServer()

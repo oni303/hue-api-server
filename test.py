@@ -182,7 +182,7 @@ def groups(username):
     elif request.method == 'GET': 
         return json.dumps(groups)
 
-@app.route('/api/<username>/groups/<gid>', methods=['PUT', 'GET'])
+@app.route('/api/<username>/groups/<gid>', methods=['PUT', 'GET', 'DELETE'])
 def group(username,gid):
     conf = Config()
     if not userAuth(conf, username):
@@ -202,6 +202,15 @@ def group(username,gid):
             retVal.append({"success":{path:attr[key]}})
         conf.save()
         return json.dumps(retVal)
+    elif request.method == 'DELETE': 
+        if gid in conf.groups:
+            del conf.groups[gid] 
+            conf.save()
+            retVal = [{"success": "/groups/%s deleted."%gid}]
+            return json.dumps(retVal)
+        else:
+            raise PermissionDenied('not allowed', status_code=305)
+         
 
 
 @app.route('/api/<username>/groups/<gid>/action', methods=['PUT'])
